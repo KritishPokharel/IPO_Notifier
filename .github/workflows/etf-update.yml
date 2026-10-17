@@ -1,0 +1,61 @@
+name: ETF dashboard - scheduled update
+
+# GitHub cron runs in UTC and does not observe DST, so every slot is scheduled at
+# both its EDT and EST UTC equivalent. The job reads the New York clock, runs only
+# inside a valid window on NYSE trading days, and skips slots already completed;
+# the extra firings therefore act as retries (also covering GitHub's cron delays).
+on:
+  schedule:
+    - cron: "30 14,15 * * 1-5"   # 10:30 AM ET (EDT / EST) + retry
+    - cron: "30 18,19 * * 1-5"   # 2:30 PM ET
+    - cron: "30 23 * * 1-5"      # 7:30 PM EDT
+    - cron: "30 0,1,2 * * 2-6"   # 7:30 PM EST, plus late-evening retries for the official close
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Force a slot (morning / afternoon / evening). Leave empty to resolve from the clock."
+        required: false
+      date:
+        description: "Session date YYYY-MM-DD (with slot)"
+        required: false
+      force:
+        description: "Re-run even if the slot already completed"
+        type: boolean
+        default: false
+
+concurrency:
+  group: etf-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: etf-dashboard
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      SMTP_URL: ${{ secrets.SMTP_URL }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: etf-dashboard/package-lock.json
+      - run: npm ci
+      - name: Run update
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.slot }}" ]; then ARGS="--slot ${{ inputs.slot }}"; fi
+          if [ -n "${{ inputs.date }}" ]; then ARGS="$ARGS --date ${{ inputs.date }}"; fi
+          if [ "${{ inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
+          npm run job:update -- $ARGS
