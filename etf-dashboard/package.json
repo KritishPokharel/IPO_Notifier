@@ -12,7 +12,8 @@
     "job:update": "tsx scripts/update.ts",
     "job:backfill": "tsx scripts/backfill.ts",
     "job:recompute": "tsx scripts/recompute.ts",
-    "expense-ratio": "tsx scripts/expense-ratio.ts"
+    "expense-ratio": "tsx scripts/expense-ratio.ts",
+    "job:verified": "tsx scripts/verified-update.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.10",

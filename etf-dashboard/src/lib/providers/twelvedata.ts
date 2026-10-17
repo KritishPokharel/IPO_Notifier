@@ -59,6 +59,7 @@ export class TwelveDataProvider implements SecondaryCloseProvider, SecondaryQuot
       const qs = new URLSearchParams({
         symbol: batch.join(","),
         interval: "1day",
+        adjust: "none", // Compare unadjusted session closes, matching Tiingo close.
         outputsize: "10",
         end_date: `${date} 23:59:59`,
         timezone: "America/New_York",

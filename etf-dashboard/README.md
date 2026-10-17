@@ -135,3 +135,55 @@ As an alternative to GitHub Actions, any scheduler can call `GET /api/cron` with
 - Intraday prices come from Tiingo's IEX feed (IEX-exchange trades only). Official consolidated closes come from end-of-day data, which is why the evening run is authoritative.
 - The 1D chart is not a tick chart. Intraday data is limited to the three stored observations per day, and no points are interpolated.
 - The daily analysis describes measured moves and uses hedged language. It does not attribute moves to news.
+
+## AI analysis page (`/ai`)
+
+The AI Analysis navigation item combines the dashboard's full ETF metrics, historical
+summary, watchlist flags and enabled target prices with NVIDIA commentary. It offers
+balanced, growth and lower-volatility research profiles for a 5+ year equity horizon.
+The top five come from a transparent deterministic ranking; the LLM explains that
+shortlist, rather than inventing prices or selecting unsupported symbols. This is a
+research shortlist, not a personalized portfolio allocation.
+
+### Setup with free market-data accounts
+
+1. Add `TIINGO_API_KEY` and `TWELVEDATA_API_KEY` to `.env.local`. Choose free personal
+   accounts: [Tiingo](https://www.tiingo.com/documentation/) and
+   [Twelve Data Basic](https://twelvedata.com/pricing). Provider coverage, entitlements
+   and terms apply; a free key does not guarantee every endpoint or public redistribution.
+2. Run `npm run job:verified`. This command loads `.env.local`, backfills missing
+   history, and cross-checks the most recent completed trading session using Twelve
+   Data, including on weekends. It uses the existing validation pipeline and does not
+   send email. Twelve Data is paced at eight symbols per minute, so allow more than a
+   minute for the twelve-ETF universe. Schedule this after the EOD feeds have published;
+   rerun later if closing data is not yet available. Avoid concurrent refresh jobs to
+   stay within account-wide free quotas. No paid data fallback is used by this command.
+3. Add `NVIDIA_API_KEY` to `.env.local` or hosting secrets and restart the app.
+   Default `NVIDIA_MODEL=nvidia/nemotron-3-ultra-550b-a55b`. The model is configurable.
+   Never prefix the secret with `NEXT_PUBLIC_` or commit it. The model request has a
+   110-second timeout; deploy with at least a 120-second function limit.
+4. Open `/ai`, choose a profile, and generate analysis. Existing `DASHBOARD_PASSWORD`
+   protects this route too; configure it for a private hosted dashboard.
+
+Model choice: [Nemotron 3 Ultra model card](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard)
+positions it for long-context analytical reasoning. This is a fit-based choice, not
+an established claim that it predicts ETF performance better than every other model.
+NVIDIA's hosted endpoint uses trial quotas and availability, separate from free market
+data. The live call must be validated with an authorized NVIDIA key.
+
+Ranking requires a verified close for the latest completed NYSE session, independent
+price evidence, at least 253 history observations, finite scoring metrics, and no
+missing sessions or disputed observations in the scoring window. It refuses to generate
+five AI picks if fewer than five qualify. The latest close is independently checked;
+historical analytics remain derived from Tiingo, and reference expense ratios remain
+explicitly unverified until updated from issuer sources. Price momentum, volatility,
+maximum drawdown and trend drive percentile scores; fees never silently influence the
+ranking. At most two picks per category reduces duplication but does not establish
+holdings diversification. The page displays source prices, dates, discrepancy, fee
+status and issuer links. It has no live news, macro, holdings, valuation or personal
+portfolio data and instructs the model to disclose these gaps.
+
+AI requests are same-origin POSTs, reuse evidence-matched reports for 15 minutes and
+use an atomic database cooldown of two minutes. Output is schema-validated and must
+match the exact shortlist; malformed, truncated or invented-symbol output is rejected.
+Prose remains AI interpretation; displayed numerical evidence comes from the database.

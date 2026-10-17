@@ -7,6 +7,7 @@ import { ThemeToggle } from "./theme-toggle";
 
 const LINKS = [
   { href: "/", label: "Overview" },
+  { href: "/ai", label: "AI Analysis" },
   { href: "/drops", label: "Biggest Drops" },
   { href: "/compare", label: "Compare" },
   { href: "/history", label: "Historical Analysis" },

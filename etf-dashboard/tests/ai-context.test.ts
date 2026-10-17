@@ -1,0 +1,22 @@
+import { afterEach, expect, it, vi } from "vitest";
+import type { Db } from "@/lib/db";
+import { testDb, FakePrimary, FakeSecondary, providers } from "./helpers";
+import { runUpdate } from "@/lib/jobs/update";
+vi.mock("server-only", () => ({}));
+let db: Db;
+vi.mock("@/lib/db", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/db")>(), getDb: async () => db }));
+import { analysisContext } from "@/lib/ai/context";
+afterEach(async () => { if (db) await db.close(); });
+it("builds real dashboard evidence, includes targets and excludes broken history", async () => {
+  db = await testDb();
+  const primary = new FakePrimary("2025-01-02", "2026-10-16");
+  const now = new Date("2026-10-17T12:00:00Z");
+  await runUpdate({ db, providers: providers(primary, new FakeSecondary(primary)), transport: null, trigger: "cli", slot: "evening", sessionDate: "2026-10-16", now, log: () => {} });
+  await db.query("INSERT INTO target_price_alerts (ticker, direction, target_price) VALUES ('VOO', 'below', 99)");
+  const context = await analysisContext("balanced", now);
+  expect(context.ranking.picks).toHaveLength(5);
+  expect(context.targets).toEqual([{ ticker: "VOO", direction: "below", target_price: 99 }]);
+  await db.query("DELETE FROM daily_prices WHERE ticker = 'VOO' AND session_date = '2026-10-01'");
+  const broken = await analysisContext("balanced", now);
+  expect(broken.ranking.excluded).toContainEqual({ ticker: "VOO", reason: "Historical series has missing trading sessions." });
+});
