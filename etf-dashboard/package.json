@@ -1,0 +1,55 @@
+{
+  "name": "etf-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "job:update": "tsx scripts/update.ts",
+    "job:backfill": "tsx scripts/backfill.ts",
+    "job:recompute": "tsx scripts/recompute.ts",
+    "expense-ratio": "tsx scripts/expense-ratio.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lightweight-charts": "^5.2.1",
+    "lucide-react": "^1.58.0",
+    "next": "15.5.28",
+    "next-themes": "^0.4.6",
+    "nodemailer": "^10.1.2",
+    "pg": "^8.23.1",
+    "radix-ui": "^1.8.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "recharts": "^3.10.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.28",
+    "shadcn": "^4.22.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
