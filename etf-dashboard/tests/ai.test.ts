@@ -62,5 +62,19 @@ describe("NVIDIA boundary", () => {
   it("does not expose provider response bodies or secrets", async () => {
     const mock = vi.fn<typeof fetch>().mockResolvedValue(new Response("secret-provider-diagnostic", { status: 401 }));
     await expect(generateReport({}, tickers, "test-key", undefined, mock)).rejects.toThrow("NVIDIA rejected");
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+  it("recovers from temporary service unavailability using the same deadline", async () => {
+    const mock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(report) } }] })));
+    expect(await generateReport({}, tickers, "test-key", undefined, mock)).toEqual(report);
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock.mock.calls[0][1]!.signal).toBe(mock.mock.calls[1][1]!.signal);
+  });
+  it("bounds retries when the provider stays unavailable", async () => {
+    const mock = vi.fn<typeof fetch>().mockImplementation(async () => new Response("private diagnostic", { status: 503 }));
+    await expect(generateReport({}, tickers, "test-key", undefined, mock)).rejects.toThrow("NVIDIA request failed (503)");
+    expect(mock).toHaveBeenCalledTimes(3);
   });
 });

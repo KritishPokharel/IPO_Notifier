@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { setTimeout as delay } from "node:timers/promises";
 export const DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
 const prose = z.string().min(1).max(3000);
 export const reportSchema = z.object({
@@ -16,10 +17,11 @@ export function parseReport(content: string, tickers: string[]): AiReport {
   return report;
 }
 export async function generateReport(context: unknown, tickers: string[], apiKey: string, model = DEFAULT_MODEL, fetchImpl: typeof fetch = fetch): Promise<AiReport> {
-  const response = await fetchImpl("https://integrate.api.nvidia.com/v1/chat/completions", {
+  const signal = AbortSignal.timeout(110_000);
+  const request: RequestInit = {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(110_000),
+    signal,
     body: JSON.stringify({
       model, temperature: 1, top_p: 0.95, max_tokens: 16000, stream: false,
       chat_template_kwargs: { enable_thinking: true, medium_effort: true },
@@ -28,7 +30,15 @@ export async function generateReport(context: unknown, tickers: string[], apiKey
         { role: "user", content: JSON.stringify(context) },
       ],
     }),
-  });
+  };
+  let response = await fetchImpl("https://integrate.api.nvidia.com/v1/chat/completions", request);
+  // Retry temporary upstream failures within the same overall deadline.
+  // Authentication, rate-limit and invalid-output errors are never retried.
+  for (let attempt = 0; attempt < 2 && [502, 503, 504].includes(response.status); attempt++) {
+    await response.body?.cancel();
+    await delay(1000 * (attempt + 1), undefined, { signal });
+    response = await fetchImpl("https://integrate.api.nvidia.com/v1/chat/completions", request);
+  }
   if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "NVIDIA rejected the API key or model access. Check server configuration." : response.status === 429 ? "NVIDIA rate limit reached. Try again later." : `NVIDIA request failed (${response.status}). Try again later.`);
   const payload = await response.json();
   const choice = payload.choices?.[0];
