@@ -159,13 +159,13 @@ research shortlist, not a personalized portfolio allocation.
    rerun later if closing data is not yet available. Avoid concurrent refresh jobs to
    stay within account-wide free quotas. No paid data fallback is used by this command.
 3. Add `NVIDIA_API_KEY` to `.env.local` or hosting secrets and restart the app.
-   Default `NVIDIA_MODEL=nvidia/nemotron-3-ultra-550b-a55b`. The model is configurable.
+   Default `NVIDIA_MODEL=nvidia/nemotron-3.5-super-vl-120b-a12b`. The model is configurable.
    Never prefix the secret with `NEXT_PUBLIC_` or commit it. The model request has a
    110-second timeout; deploy with at least a 120-second function limit.
 4. Open `/ai`, choose a profile, and generate analysis. Existing `DASHBOARD_PASSWORD`
    protects this route too; configure it for a private hosted dashboard.
 
-Model choice: [Nemotron 3 Ultra model card](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b/modelcard)
+Model choice: [Nemotron 3.5 Super VL model card](https://build.nvidia.com/nvidia/nemotron-3.5-super-vl-120b-a12b/modelcard)
 positions it for long-context analytical reasoning. This is a fit-based choice, not
 an established claim that it predicts ETF performance better than every other model.
 NVIDIA's hosted endpoint uses trial quotas and availability, separate from free market
